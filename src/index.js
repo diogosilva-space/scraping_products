@@ -37,11 +37,12 @@ class ScrapingManager {
       logger.info(`Total de sites configurados: ${this.scrapers.length}`);
       
       for (const site of this.scrapers) {
+        let scraper = null;
         try {
           logger.separator();
           logger.info(`Processando site: ${site.name}`);
           
-          const scraper = new site.scraper();
+          scraper = new site.scraper();
           await scraper.run();
           
           this.results.sites_sucesso++;
@@ -52,7 +53,25 @@ class ScrapingManager {
         } catch (error) {
           this.results.sites_erro++;
           logger.error(`❌ Erro ao processar ${site.name}:`, error);
+          
+          // Garante que o scraper seja limpo mesmo com erro
+          if (scraper) {
+            try {
+              await scraper.emergencyCleanup();
+            } catch (cleanupError) {
+              logger.error(`Erro durante limpeza de emergência de ${site.name}:`, cleanupError);
+            }
+          }
         } finally {
+          // Sempre tenta limpeza final
+          if (scraper) {
+            try {
+              await scraper.cleanup();
+            } catch (cleanupError) {
+              logger.error(`Erro durante limpeza final de ${site.name}:`, cleanupError);
+            }
+          }
+          
           this.results.sites_processados++;
         }
       }
@@ -62,6 +81,8 @@ class ScrapingManager {
     } catch (error) {
       logger.error('Erro durante execução de todos os scrapers:', error);
       throw error;
+    } finally {
+      await this.globalCleanup();
     }
   }
 
@@ -141,6 +162,25 @@ class ScrapingManager {
       
     } catch (error) {
       logger.error('Erro ao gerar relatório final:', error);
+    }
+  }
+
+  /**
+   * Limpeza global do sistema
+   */
+  async globalCleanup() {
+    try {
+      logger.info('Executando limpeza global do sistema...');
+      
+      // Mata processos Chrome órfãos
+      const BrowserManager = require('./utils/browser');
+      const tempBrowser = new BrowserManager();
+      await tempBrowser.killOrphanProcesses();
+      
+      logger.success('Limpeza global concluída');
+      
+    } catch (error) {
+      logger.error('Erro durante limpeza global:', error);
     }
   }
 

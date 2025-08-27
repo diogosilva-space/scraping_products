@@ -75,8 +75,11 @@ class BaseScraper {
       
     } catch (error) {
       logger.error('Erro durante o scraping:', error);
+      // Garante que o cleanup seja executado mesmo com erro
+      await this.emergencyCleanup();
       throw error;
     } finally {
+      // Sempre executa o cleanup
       await this.cleanup();
     }
   }
@@ -568,6 +571,25 @@ class BaseScraper {
   }
 
   /**
+   * Limpeza de emergência - executa mesmo com erros
+   */
+  async emergencyCleanup() {
+    try {
+      logger.warn('Executando limpeza de emergência...');
+      
+      // Força fechamento do navegador
+      if (this.browserManager && this.browserManager.isActive()) {
+        await this.browserManager.forceClose();
+      }
+      
+      logger.success('Limpeza de emergência concluída');
+      
+    } catch (error) {
+      logger.error('Erro durante limpeza de emergência:', error);
+    }
+  }
+
+  /**
    * Limpeza e finalização
    */
   async cleanup() {
@@ -580,11 +602,15 @@ class BaseScraper {
       // Exibe estatísticas finais
       this.dataManager.stats(this.stats);
       
-      // Fecha o navegador
-      await this.browserManager.close();
+      // Fecha o navegador de forma segura
+      if (this.browserManager && this.browserManager.isActive()) {
+        await this.browserManager.close();
+      }
       
     } catch (error) {
       logger.error('Erro durante a limpeza:', error);
+      // Tenta limpeza de emergência se a normal falhar
+      await this.emergencyCleanup();
     }
   }
 }

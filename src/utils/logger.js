@@ -44,7 +44,7 @@ class Logger {
    * Log de informação
    */
   info(message, data = null) {
-    const coloredMessage = chalk.blue(`[INFO] ${message}`);
+    const coloredMessage = chalk.white(`[INFO] ${message}`);
     console.log(coloredMessage);
     this.writeToFile('info', message, data);
   }

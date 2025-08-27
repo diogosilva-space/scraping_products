@@ -214,6 +214,77 @@ class BrowserManager {
       }
     } catch (error) {
       logger.error('Erro ao fechar navegador:', error);
+      // Tenta fechamento forçado se o normal falhar
+      await this.forceClose();
+    }
+  }
+
+  /**
+   * Fechamento forçado do navegador
+   */
+  async forceClose() {
+    try {
+      logger.warn('Executando fechamento forçado do navegador...');
+      
+      if (this.page) {
+        try {
+          await this.page.close();
+        } catch (error) {
+          logger.debug('Erro ao fechar página:', error);
+        }
+        this.page = null;
+      }
+      
+      if (this.browser) {
+        try {
+          // Tenta fechar normalmente primeiro
+          await this.browser.close();
+        } catch (error) {
+          logger.debug('Fechamento normal falhou, tentando forçado:', error);
+          
+          // Fechamento forçado
+          if (this.browser.process()) {
+            this.browser.process().kill('SIGKILL');
+          }
+        }
+        this.browser = null;
+      }
+      
+      logger.success('Fechamento forçado concluído');
+      
+    } catch (error) {
+      logger.error('Erro durante fechamento forçado:', error);
+    }
+  }
+
+  /**
+   * Mata todos os processos do Chrome órfãos
+   */
+  async killOrphanProcesses() {
+    try {
+      if (process.platform === 'win32') {
+        // Windows
+        const { exec } = require('child_process');
+        exec('taskkill /f /im chrome.exe /t', (error) => {
+          if (error) {
+            logger.debug('Nenhum processo Chrome encontrado para matar');
+          } else {
+            logger.info('Processos Chrome órfãos finalizados');
+          }
+        });
+      } else {
+        // Linux/Mac
+        const { exec } = require('child_process');
+        exec('pkill -f chrome', (error) => {
+          if (error) {
+            logger.debug('Nenhum processo Chrome encontrado para matar');
+          } else {
+            logger.info('Processos Chrome órfãos finalizados');
+          }
+        });
+      }
+    } catch (error) {
+      logger.error('Erro ao matar processos órfãos:', error);
     }
   }
 

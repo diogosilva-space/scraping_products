@@ -15,7 +15,9 @@
     "analyze": "node src/analyze-sites.js",
     "analyze:all": "node src/analyze-sites.js --all",
     "analyze:spotgifts": "node src/analyze-sites.js --site spotgifts",
-    "analyze:xbzbrindes": "node src/analyze-sites.js --site xbzbrindes"
+    "analyze:xbzbrindes": "node src/analyze-sites.js --site xbzbrindes",
+    "cleanup": "chmod +x cleanup-emergency.sh && ./cleanup-emergency.sh",
+    "cleanup:win": "cleanup-emergency.bat"
   },
   "keywords": ["scraping", "puppeteer", "products", "ecommerce"],
   "author": "",
