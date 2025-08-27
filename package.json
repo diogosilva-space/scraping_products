@@ -1,0 +1,33 @@
+{
+  "name": "scraping-products",
+  "version": "1.0.0",
+  "description": "Sistema de scraping de produtos usando Puppeteer",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "scrape:spotgifts": "node src/scrapers/spotgifts.js",
+    "scrape:xbzbrindes": "node src/scrapers/xbzbrindes.js",
+    "dev": "nodemon src/index.js",
+    "test": "node src/test/test-scraper.js",
+    "test:basic": "node src/test/test-scraper.js basic",
+    "test:config": "node src/test/test-scraper.js config",
+    "test:utils": "node src/test/test-scraper.js utils",
+    "analyze": "node src/analyze-sites.js",
+    "analyze:all": "node src/analyze-sites.js --all",
+    "analyze:spotgifts": "node src/analyze-sites.js --site spotgifts",
+    "analyze:xbzbrindes": "node src/analyze-sites.js --site xbzbrindes"
+  },
+  "keywords": ["scraping", "puppeteer", "products", "ecommerce"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^24.9.0",
+    "dotenv": "^16.4.5",
+    "fs-extra": "^11.2.0",
+    "chalk": "^4.1.2",
+    "cli-progress": "^3.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
