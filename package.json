@@ -12,6 +12,7 @@
     "test:basic": "node src/test/test-scraper.js basic",
     "test:config": "node src/test/test-scraper.js config",
     "test:utils": "node src/test/test-scraper.js utils",
+    "test:compatibility": "node test-compatibility.js",
     "analyze": "node src/analyze-sites.js",
     "analyze:all": "node src/analyze-sites.js --all",
     "analyze:spotgifts": "node src/analyze-sites.js --site spotgifts",

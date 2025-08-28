@@ -1,5 +1,6 @@
 const BaseScraper = require('./BaseScraper');
 const config = require('../config/spotgifts');
+const logger = require('../utils/logger');
 
 /**
  * Scraper específico para o Spot Gifts

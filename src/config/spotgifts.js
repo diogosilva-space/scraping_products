@@ -11,29 +11,29 @@ module.exports = {
   // Seletores para navegação
   selectors: {
     // Elementos de paginação/rolagem
-    productGrid: '.product-grid, .products-grid, [class*="product"]',
-    productCard: '.product-item, .product-card, [class*="product-item"]',
+    productGrid: '#produtos-wrap',
+    productCard: '.produto, [class*="produto"]',
     loadMoreButton: '.load-more, .show-more, [class*="load-more"]',
     
     // Links dos produtos
-    productLinks: 'a[href*="/produto"], a[href*="/product"], .product-link',
+    productLinks: '.produto, [class*="produto"]',
     
     // Informações dos produtos na listagem
-    productName: '.product-name, .product-title, h2, h3, h4',
-    productReference: '.product-reference, .product-code, .reference',
-    productPrice: '.product-price, .price, [class*="price"]',
-    productImage: '.product-image img, .product-img img, img[src*="product"]',
+    productName: '.produto-title, .title, [class*="title"], .produto h3, .produto h4',
+    productReference: '.produto-ref, .reference, [class*="ref"], [class*="reference"]',
+    productPrice: '.produto-price, .price, [class*="price"], .produto .price',
+    productImage: 'img[src*="produto"], img[src*="product"], .produto img',
     
     // Página do produto
     productPage: {
-      name: 'h1, .product-name, .product-title',
-      reference: '.product-reference, .product-code, .reference, .sku',
-      description: '.product-description, .description, .product-details',
-      colors: '.product-colors, .colors, .color-options, .color-selector',
-      images: '.product-images img, .product-gallery img, .gallery img',
-      categories: '.breadcrumb, .product-categories, .category',
-      additionalInfo: '.product-info, .product-specs, .specifications',
-      price: '.product-price, .price, .current-price'
+      name: 'h1.titulo, h1, .titulo, [class*="title"]',
+      reference: '.ref, [class*="ref"]',
+      description: '.texto, .produto-description, .description, [class*="description"], .produto-details',
+      colors: '.color',
+      images: '.img-wrap.center > span > span > img',
+      categories: '.breadcrumb, .produto-categories, .category, [class*="category"]',
+      additionalInfo: '.produto-info, .produto-specs, .specifications, [class*="info"]',
+      price: '.produto-price, .price, .current-price, [class*="price"]'
     }
   },
   
@@ -56,42 +56,42 @@ module.exports = {
   // Mapeamento de campos
   fieldMapping: {
     referencia: {
-      selectors: ['.product-reference', '.product-code', '.reference', '.sku'],
+      selectors: ['.ref', '[class*="ref"]'],
       extract: 'text',
       required: true
     },
     nome: {
-      selectors: ['h1', '.product-name', '.product-title'],
+      selectors: ['h1.titulo', 'h1', '.titulo', '[class*="title"]'],
       extract: 'text',
       required: true
     },
     descricao: {
-      selectors: ['.product-description', '.description', '.product-details'],
+      selectors: ['.texto', '.produto-description', '.description', '[class*="description"]', '.produto-details'],
       extract: 'text',
       required: true
     },
     cores: {
-      selectors: ['.product-colors', '.colors', '.color-options'],
-      extract: 'array',
+      selectors: ['.color'],
+      extract: 'color',
       required: true
     },
     imagens: {
-      selectors: ['.product-images img', '.product-gallery img', '.gallery img'],
+      selectors: ['.img-wrap.center > span > span > img'],
       extract: 'src',
       required: true
     },
     categorias: {
-      selectors: ['.breadcrumb', '.product-categories', '.category'],
+      selectors: ['.breadcrumb', '.produto-categories', '.category', '[class*="category"]'],
       extract: 'array',
       required: false
     },
     informacoes_adicionais: {
-      selectors: ['.product-info', '.product-specs', '.specifications'],
+      selectors: ['.conteudo .caracteristica'],
       extract: 'text',
       required: false
     },
     preco: {
-      selectors: ['.product-price', '.price', '.current-price'],
+      selectors: ['.produto-price', '.price', '.current-price', '[class*="price"]'],
       extract: 'price',
       required: false
     }

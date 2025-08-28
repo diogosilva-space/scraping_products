@@ -12,7 +12,7 @@ class ScrapingManager {
   constructor() {
     this.scrapers = [
       { name: 'Spot Gifts', scraper: SpotGiftsScraper },
-      { name: 'XBZ Brindes', scraper: XBZBrindesScraper }
+      // { name: 'XBZ Brindes', scraper: XBZBrindesScraper }
     ];
     
     this.results = {
@@ -25,6 +25,7 @@ class ScrapingManager {
       tempo_fim: null
     };
   }
+
 
   /**
    * Executa o scraping de todos os sites
@@ -268,7 +269,6 @@ Configuração:
 async function main() {
   try {
     const manager = new ScrapingManager();
-    
     // Verifica se há argumentos de linha de comando
     if (process.argv.length > 2) {
       await manager.processArguments();

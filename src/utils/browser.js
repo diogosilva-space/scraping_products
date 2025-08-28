@@ -35,6 +35,7 @@ class BrowserManager {
 
       const launchOptions = { ...defaultOptions, ...options };
       
+      
       logger.info('Iniciando navegador...');
       this.browser = await puppeteer.launch(launchOptions);
       
@@ -104,12 +105,28 @@ class BrowserManager {
       
       const waitOptions = { ...defaultOptions, ...options };
       
+      // Usa waitForSelector que é compatível com todas as versões
       await this.page.waitForSelector(selector, waitOptions);
       logger.debug(`Elemento encontrado: ${selector}`);
       
     } catch (error) {
       logger.warn(`Elemento não encontrado: ${selector}`);
       throw error;
+    }
+  }
+
+
+
+  /**
+   * Aguarda um elemento com timeout personalizado
+   */
+  async waitForElementWithTimeout(selector, timeout = 10000) {
+    try {
+      await this.page.waitForSelector(selector, { timeout, visible: true });
+      return true;
+    } catch (error) {
+      logger.warn(`Timeout aguardando elemento: ${selector} (${timeout}ms)`);
+      return false;
     }
   }
 
@@ -138,7 +155,7 @@ class BrowserManager {
         }, scrollOptions.scrollStep);
         
         // Aguarda carregamento
-        await this.page.waitForTimeout(scrollOptions.delay);
+        await this.wait(scrollOptions.delay);
         
         // Verifica se chegou ao final
         const currentHeight = await this.page.evaluate(() => {
@@ -285,6 +302,24 @@ class BrowserManager {
       }
     } catch (error) {
       logger.error('Erro ao matar processos órfãos:', error);
+    }
+  }
+
+  /**
+   * Aguarda um tempo específico (compatível com todas as versões)
+   */
+  async wait(milliseconds) {
+    try {
+      // Tenta usar waitForTimeout se disponível
+      if (this.page && typeof this.page.waitForTimeout === 'function') {
+        await this.page.waitForTimeout(milliseconds);
+      } else {
+        // Fallback para setTimeout
+        await new Promise(resolve => setTimeout(resolve, milliseconds));
+      }
+    } catch (error) {
+      // Se waitForTimeout falhar, usa setTimeout
+      await new Promise(resolve => setTimeout(resolve, milliseconds));
     }
   }
 

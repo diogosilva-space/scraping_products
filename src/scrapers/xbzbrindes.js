@@ -1,5 +1,6 @@
 const BaseScraper = require('./BaseScraper');
 const config = require('../config/xbzbrindes');
+const logger = require('../utils/logger');
 
 /**
  * Scraper específico para o XBZ Brindes

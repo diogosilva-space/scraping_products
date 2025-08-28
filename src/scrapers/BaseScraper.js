@@ -74,6 +74,7 @@ class BaseScraper {
       logger.success('Scraping concluído com sucesso!');
       
     } catch (error) {
+      console.log('error', error);
       logger.error('Erro durante o scraping:', error);
       // Garante que o cleanup seja executado mesmo com erro
       await this.emergencyCleanup();
@@ -122,10 +123,11 @@ class BaseScraper {
       }
       
       // Aguarda um pouco mais para garantir carregamento completo
-      await this.browserManager.getPage().waitForTimeout(2000);
+      await this.browserManager.wait(2000);
       
     } catch (error) {
       logger.warn('Timeout aguardando carregamento da página, continuando...');
+      logger.debug('Detalhes do erro:', error.message);
     }
   }
 
@@ -152,7 +154,7 @@ class BaseScraper {
         });
         
         // Aguarda carregamento de novo conteúdo
-        await this.browserManager.getPage().waitForTimeout(scrollConfig.waitForNewContent);
+        await this.browserManager.wait(scrollConfig.waitForNewContent);
         
         // Verifica se novos produtos foram carregados
         const newProductCount = await this.countVisibleProducts();
@@ -237,28 +239,59 @@ class BaseScraper {
         const link = productLinks[i];
         
         try {
-          logger.progress(i + 1, productLinks.length, `Extraindo: ${link.text || link.href}`);
+          logger.progress(i + 1, productLinks.length, `Extraindo: ${link.text || link.href}\n`);
+          
+          logger.info(`🔍 Extraindo produto: ${link.href}`);
           
           const product = await this.extractProduct(link.href);
+          
+          logger.info(`📦 Produto retornado: ${product ? 'SIM' : 'NÃO'}`);
+          
+          // Debug: mostra dados extraídos
+          if (product) {
+            logger.info(`✅ Dados extraídos para ${link.href}:`);
+            logger.info(`  Nome: ${product.nome || 'N/A'}`);
+            logger.info(`  Referência: ${product.referencia || 'N/A'}`);
+            logger.info(`  Cores: ${product.cores ? product.cores.length : 0} cores`);
+            if (product.cores && product.cores.length > 0) {
+              product.cores.forEach((cor, index) => {
+                if (cor.nome) logger.info(`    Cor ${index + 1}: ${cor.nome} (${cor.tipo || 'texto'})`);
+                if (cor.imagem) logger.info(`      Imagem Relativa: ${cor.imagem}`);
+                if (cor.imagemCompleta) logger.info(`      Imagem Completa: ${cor.imagemCompleta}`);
+                if (cor.codigo) logger.info(`      Código: ${cor.codigo}`);
+                if (cor.codigoNumerico) logger.info(`      Código Numérico: ${cor.codigoNumerico}`);
+              });
+            }
+            logger.info(`  Imagens: ${product.imagens ? product.imagens.length : 0} imagens`);
+            logger.info(`  Válido: ${product.isValid()}`);
+            
+            if (!product.isValid()) {
+              const missing = product.getMissingFields();
+              logger.info(`  ❌ Campos faltando: ${missing.join(', ')}`);
+            }
+          } else {
+            logger.warn(`❌ Produto retornou null/undefined`);
+          }
           
           if (product && product.isValid()) {
             this.products.push(product);
             this.stats.validos++;
+            logger.success(`✅ Produto válido adicionado: ${product.nome}`);
           } else {
             this.stats.invalidos++;
-            logger.warn(`Produto inválido: ${link.href}`);
+            logger.warn(`❌ Produto inválido: ${link.href}`);
           }
           
           // Delay entre produtos
           if (i < productLinks.length - 1) {
-            await this.browserManager.getPage().waitForTimeout(
+            await this.browserManager.wait(
               this.config.extraction.delayBetweenProducts
             );
           }
           
         } catch (error) {
           this.stats.erros++;
-          logger.error(`Erro ao extrair produto ${link.href}:`, error);
+          logger.error(`❌ Erro ao extrair produto ${link.href}:`, error);
         }
       }
       
@@ -276,6 +309,8 @@ class BaseScraper {
    */
   async extractProduct(productUrl) {
     try {
+      logger.debug(`Iniciando extração do produto: ${productUrl}`);
+      
       // Navega para a página do produto
       await this.browserManager.navigateTo(productUrl);
       
@@ -283,18 +318,30 @@ class BaseScraper {
       await this.waitForProductPageLoad();
       
       // Extrai dados usando o mapeamento de campos
+      logger.debug('Extraindo campos do produto...');
       const productData = await this.extractProductFields();
+      
+      logger.debug('Dados extraídos:', productData);
       
       // Adiciona prefixo do site na referência
       if (productData.referencia) {
         productData.referencia = this.addSitePrefix(productData.referencia);
+        logger.debug(`Referência com prefixo: ${productData.referencia}`);
       }
       
       // Cria objeto Product
+      logger.debug('Criando objeto Product...');
       const product = new Product({
         ...productData,
         url_produto: productUrl,
         site_origem: this.config.name
+      });
+      
+      logger.debug('Objeto Product criado:', {
+        nome: product.nome,
+        referencia: product.referencia,
+        cores: product.cores?.length,
+        imagens: product.imagens?.length
       });
       
       return product;
@@ -381,8 +428,8 @@ class BaseScraper {
         }
       }
       
-      // Aguarda um pouco mais
-      await this.browserManager.getPage().waitForTimeout(1000);
+              // Aguarda um pouco mais
+        await this.browserManager.wait(1000);
       
     } catch (error) {
       logger.warn('Timeout aguardando carregamento da página do produto');
@@ -426,30 +473,122 @@ class BaseScraper {
       for (const selector of selectors) {
         try {
           const value = await this.browserManager.evaluate((sel, extType) => {
-            const element = document.querySelector(sel);
-            if (!element) return null;
-            
             switch (extType) {
               case 'text':
+                const element = document.querySelector(sel);
+                if (!element) return null;
                 return element.textContent?.trim() || '';
               case 'src':
-                return element.src || element.getAttribute('src') || '';
+                // Para imagens, extrai apenas src e remove duplicatas
+                if (sel.includes('img')) {
+                  const elements = document.querySelectorAll(sel);
+                  if (elements.length === 0) return null;
+                  
+                  const imageUrls = new Set(); // Usa Set para garantir URLs únicas
+                  elements.forEach(el => {
+                    if (el.tagName === 'IMG') {
+                      const src = el.src || el.getAttribute('src');
+                      if (src) {
+                        // Constrói URL completa se for relativa
+                        let fullUrl = src;
+                        if (src.startsWith('/')) {
+                          fullUrl = window.location.origin + src;
+                        } else if (!src.startsWith('http')) {
+                          fullUrl = window.location.origin + '/' + src;
+                        }
+                        imageUrls.add(fullUrl);
+                      }
+                    }
+                  });
+                  
+                  return Array.from(imageUrls); // Converte Set para Array
+                } else {
+                  const imgElement = document.querySelector(sel);
+                  if (!imgElement) return null;
+                  const src = imgElement.src || imgElement.getAttribute('src') || '';
+                  
+                  // Constrói URL completa se for relativa
+                  if (src && src.startsWith('/')) {
+                    return window.location.origin + src;
+                  } else if (src && !src.startsWith('http')) {
+                    return window.location.origin + '/' + src;
+                  }
+                  
+                  return src;
+                }
+                
+                return Array.from(imageUrls); // Converte Set para Array
               case 'href':
-                return element.href || element.getAttribute('href') || '';
+                const linkElement = document.querySelector(sel);
+                if (!linkElement) return null;
+                return linkElement.href || linkElement.getAttribute('href') || '';
               case 'array':
                 // Para arrays (cores, categorias, etc.)
-                if (element.tagName === 'SELECT') {
-                  return Array.from(element.options).map(opt => opt.textContent?.trim()).filter(Boolean);
-                }
-                // Para elementos múltiplos
                 const elements = document.querySelectorAll(sel);
+                if (elements.length === 0) return null;
+                
+                if (elements[0].tagName === 'SELECT') {
+                  return Array.from(elements[0].options).map(opt => opt.textContent?.trim()).filter(Boolean);
+                }
+                
+                // Para elementos múltiplos
                 return Array.from(elements).map(el => el.textContent?.trim()).filter(Boolean);
+              case 'color':
+                // Para cores - extrai imagem, código hex e nome
+                const colorElements = document.querySelectorAll(sel);
+                if (colorElements.length === 0) return null;
+                
+                return Array.from(colorElements).map(el => {
+                  const colorData = {};
+                  
+                  // Nome da cor (title)
+                  colorData.nome = el.getAttribute('title') || '';
+                  
+                  // Código da cor (span dentro)
+                  const span = el.querySelector('span');
+                  if (span) {
+                    const style = span.getAttribute('style') || '';
+                    
+                    // Verifica se tem background-image (imagem)
+                    const bgImageMatch = style.match(/background-image:\s*url\(['"]?([^'"]+)['"]?\)/);
+                    if (bgImageMatch) {
+                      const relativeUrl = bgImageMatch[1];
+                      colorData.imagem = relativeUrl;
+                      colorData.tipo = 'imagem';
+                      
+                      // Constrói URL completa
+                      if (relativeUrl.startsWith('http')) {
+                        colorData.imagemCompleta = relativeUrl;
+                      } else if (relativeUrl.startsWith('/')) {
+                        colorData.imagemCompleta = window.location.origin + relativeUrl;
+                      } else {
+                        colorData.imagemCompleta = window.location.origin + '/' + relativeUrl;
+                      }
+                    }
+                    
+                    // Verifica se tem background-color (código hex)
+                    const bgColorMatch = style.match(/background-color:\s*(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})/);
+                    if (bgColorMatch) {
+                      colorData.codigo = bgColorMatch[1];
+                      colorData.tipo = 'hex';
+                    }
+                  }
+                  
+                  // Texto do elemento (código numérico)
+                  colorData.codigoNumerico = el.textContent?.trim() || '';
+                  
+                  return colorData;
+                });
               case 'price':
-                const priceText = element.textContent?.trim() || '';
+                const priceElement = document.querySelector(sel);
+                if (!priceElement) return null;
+                const priceText = priceElement.textContent?.trim() || '';
                 const priceMatch = priceText.match(/[\d,]+\.?\d*/);
                 return priceMatch ? parseFloat(priceMatch[0].replace(/,/g, '')) : null;
               default:
-                return element.textContent?.trim() || '';
+                const defaultElement = document.querySelector(sel);
+                if (!defaultElement) return null;
+                return defaultElement.textContent?.trim() || '';
             }
           }, selector, extract);
           
@@ -494,7 +633,7 @@ class BaseScraper {
       await this.browserManager.getPage().click(loginConfig.selectors.submit);
       
       // Aguarda redirecionamento
-      await this.browserManager.getPage().waitForTimeout(3000);
+      await this.browserManager.wait(3000);
       
       logger.success('Login realizado com sucesso');
       

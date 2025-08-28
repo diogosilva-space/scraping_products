@@ -22,7 +22,7 @@ class SiteAnalyzer {
       await this.browserManager.navigateTo(url);
       
       // Aguarda carregamento da página
-      await this.browserManager.getPage().waitForTimeout(3000);
+      await this.browserManager.wait(3000);
       
       const analysis = {
         siteName,
