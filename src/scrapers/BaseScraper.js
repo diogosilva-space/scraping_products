@@ -446,6 +446,9 @@ class BaseScraper {
       for (const [field, config] of Object.entries(this.config.fieldMapping)) {
         try {
           const value = await this.extractField(config);
+          if (field === 'categorias') {
+            console.log('value ===================>>>>>>>>', field, "===", value);
+          }
           productData[field] = value;
         } catch (error) {
           logger.debug(`Erro ao extrair campo ${field}:`, error);
@@ -474,6 +477,15 @@ class BaseScraper {
         try {
           const value = await this.browserManager.evaluate((sel, extType) => {
             switch (extType) {
+              case 'script':
+                const scriptElement = document.querySelector(sel);
+                if (!scriptElement) return null;
+                const content = scriptElement.textContent || scriptElement.innerHTML;
+                if (content.includes('item_category')) {
+                  const categories = content.match(/"item_category2":"([^"]*)"/);
+                  return categories;
+                }
+                return content;
               case 'text':
                 const element = document.querySelector(sel);
                 if (!element) return null;

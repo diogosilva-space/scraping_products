@@ -12,6 +12,7 @@ class BrowserManager {
    */
   async initialize(options = {}) {
     try {
+  
       const defaultOptions = {
         headless: process.env.HEADLESS === 'true',
         args: [
@@ -24,17 +25,15 @@ class BrowserManager {
           '--disable-gpu',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
+          '--disable-renderer-backgrounding',
+          '--window-size=1920,1080',   
+          '--start-maximized'  
         ],
-        defaultViewport: {
-          width: 1920,
-          height: 1080
-        },
+        defaultViewport: null,
         timeout: 30000
       };
 
       const launchOptions = { ...defaultOptions, ...options };
-      
       
       logger.info('Iniciando navegador...');
       this.browser = await puppeteer.launch(launchOptions);
@@ -48,13 +47,13 @@ class BrowserManager {
       
       // Configurar user agent
       await this.page.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
       );
 
       // Interceptar requisições para melhorar performance
       await this.page.setRequestInterception(true);
       this.page.on('request', (req) => {
-        if (['image', 'stylesheet', 'font'].includes(req.resourceType())) {
+        if (['image', 'stylesheet', 'font'].includes(req.resourceType()) && process.env.HEADLESS === 'true') {
           req.abort();
         } else {
           req.continue();

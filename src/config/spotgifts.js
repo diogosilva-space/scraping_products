@@ -12,11 +12,9 @@ module.exports = {
   selectors: {
     // Elementos de paginação/rolagem
     productGrid: '#produtos-wrap',
-    productCard: '.produto, [class*="produto"]',
-    loadMoreButton: '.load-more, .show-more, [class*="load-more"]',
-    
+    productCard: '.produto.fav-container',
     // Links dos produtos
-    productLinks: '.produto, [class*="produto"]',
+    productLinks: 'a.produto.fav-container',
     
     // Informações dos produtos na listagem
     productName: '.produto-title, .title, [class*="title"], .produto h3, .produto h4',
@@ -26,9 +24,9 @@ module.exports = {
     
     // Página do produto
     productPage: {
-      name: 'h1.titulo, h1, .titulo, [class*="title"]',
-      reference: '.ref, [class*="ref"]',
-      description: '.texto, .produto-description, .description, [class*="description"], .produto-details',
+      name: '#produto-detalhe > div > div > div.right > div.main > h1',
+      reference: '#produto-detalhe > div > div > div.right > div.main > div.ref',
+      description: '#produto-detalhe > div > div > div.right > div.main > div.texto',
       colors: '.color',
       images: '.img-wrap.center > span > span > img',
       categories: '.breadcrumb, .produto-categories, .category, [class*="category"]',
@@ -81,8 +79,8 @@ module.exports = {
       required: true
     },
     categorias: {
-      selectors: ['.breadcrumb', '.produto-categories', '.category', '[class*="category"]'],
-      extract: 'array',
+      selectors: ['main.content-wrap > script'],
+      extract: 'script',
       required: false
     },
     informacoes_adicionais: {
