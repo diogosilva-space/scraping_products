@@ -2,6 +2,7 @@ const BrowserManager = require('../utils/browser');
 const DataManager = require('../utils/dataManager');
 const Product = require('../models/Product');
 const logger = require('../utils/logger');
+const SyncManager = require('../utils/syncManager');
 
 /**
  * Classe base para todos os scrapers
@@ -20,6 +21,14 @@ class BaseScraper {
       tempo_inicio: null,
       tempo_fim: null
     };
+    
+    // Inicializa gerenciador de sincronização se configurado
+    if (this.config.sync && this.config.sync.enabled !== false) {
+      this.syncManager = new SyncManager({
+        ...this.config.sync,
+        api: this.config.api
+      });
+    }
   }
 
   /**
@@ -35,6 +44,11 @@ class BaseScraper {
       // Login se necessário
       if (this.config.login && this.config.login.required) {
         await this.performLogin();
+      }
+      
+      // Inicializa sincronização se configurado
+      if (this.syncManager) {
+        await this.syncManager.initialize();
       }
       
       logger.success('Scraper inicializado com sucesso');
@@ -70,6 +84,17 @@ class BaseScraper {
       
       // Gera relatórios
       await this.generateReports();
+      
+      // Sincroniza produtos com a API se configurado
+      if (this.syncManager && this.config.sync.syncAfterScraping !== false) {
+        try {
+          logger.info('🔄 Iniciando sincronização com a API...');
+          await this.syncManager.syncAfterScraping(this.products, this.config.name);
+        } catch (syncError) {
+          logger.error('❌ Erro durante sincronização:', syncError.message);
+          // Não falha o scraping por erro de sincronização
+        }
+      }
       
       logger.success('Scraping concluído com sucesso!');
       
@@ -774,6 +799,11 @@ class BaseScraper {
       // Fecha o navegador de forma segura
       if (this.browserManager && this.browserManager.isActive()) {
         await this.browserManager.close();
+      }
+      
+      // Limpa recursos de sincronização
+      if (this.syncManager) {
+        await this.syncManager.cleanup();
       }
       
     } catch (error) {

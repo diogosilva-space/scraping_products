@@ -5,8 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "scrape:spotgifts": "node src/scrapers/spotgifts.js",
-    "scrape:xbzbrindes": "node src/scrapers/xbzbrindes.js",
+    "scrape:spotgifts": "node src/index.js --site \"Spot Gifts\"",
+    "scrape:xbzbrindes": "node src/index.js --site \"XBZ Brindes\"",
     "dev": "nodemon src/index.js",
     "test": "node src/test/test-scraper.js",
     "test:basic": "node src/test/test-scraper.js basic",
@@ -17,18 +17,30 @@
     "analyze:all": "node src/analyze-sites.js --all",
     "analyze:spotgifts": "node src/analyze-sites.js --site spotgifts",
     "analyze:xbzbrindes": "node src/analyze-sites.js --site xbzbrindes",
+    "sync": "node src/index.js --sync",
+    "sync:spotgifts": "node src/index.js --sync:site \"Spot Gifts\"",
+    "sync:xbzbrindes": "node src/index.js --sync:site \"XBZ Brindes\"",
+    "stats": "node src/index.js --stats",
+    "test:api": "node src/test/test-api-integration.js",
     "cleanup": "chmod +x cleanup-emergency.sh && ./cleanup-emergency.sh",
     "cleanup:win": "cleanup-emergency.bat"
   },
-  "keywords": ["scraping", "puppeteer", "products", "ecommerce"],
+  "keywords": [
+    "scraping",
+    "puppeteer",
+    "products",
+    "ecommerce"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "puppeteer": "^24.9.0",
-    "dotenv": "^16.4.5",
-    "fs-extra": "^11.2.0",
+    "axios": "^1.11.0",
     "chalk": "^4.1.2",
-    "cli-progress": "^3.12.0"
+    "cli-progress": "^3.12.0",
+    "dotenv": "^16.4.5",
+    "form-data": "^4.0.4",
+    "fs-extra": "^11.2.0",
+    "puppeteer": "^24.9.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

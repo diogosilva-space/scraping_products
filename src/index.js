@@ -186,6 +186,101 @@ class ScrapingManager {
   }
 
   /**
+   * Sincroniza produtos existentes com a API
+   */
+  async syncExistingProducts() {
+    try {
+      logger.title('🔄 SINCRONIZANDO PRODUTOS EXISTENTES COM A API');
+      
+      const SyncManager = require('./utils/syncManager');
+      const apiConfig = require('./config/api');
+      
+      const syncManager = new SyncManager({
+        ...apiConfig.sync,
+        api: apiConfig
+      });
+      
+      await syncManager.initialize();
+      const result = await syncManager.syncExistingProducts();
+      
+      if (result.skipped) {
+        logger.warn(`⏭️ Sincronização pulada: ${result.reason}`);
+      } else {
+        logger.success(`✅ Sincronização concluída: ${result.success} sucessos, ${result.errors} erros`);
+      }
+      
+      // Exibe estatísticas
+      syncManager.showStats();
+      
+      await syncManager.cleanup();
+      
+    } catch (error) {
+      logger.error('❌ Erro durante sincronização:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Sincroniza produtos de um site específico
+   */
+  async syncSiteProducts(siteName) {
+    try {
+      logger.title(`🔄 SINCRONIZANDO PRODUTOS DO SITE: ${siteName}`);
+      
+      const SyncManager = require('./utils/syncManager');
+      const apiConfig = require('./config/api');
+      
+      const syncManager = new SyncManager({
+        ...apiConfig.sync,
+        api: apiConfig
+      });
+      
+      await syncManager.initialize();
+      const result = await syncManager.syncExistingProducts(siteName);
+      
+      if (result.skipped) {
+        logger.warn(`⏭️ Sincronização pulada: ${result.reason}`);
+      } else {
+        logger.success(`✅ Sincronização concluída: ${result.success} sucessos, ${result.errors} erros`);
+      }
+      
+      // Exibe estatísticas
+      syncManager.showStats();
+      
+      await syncManager.cleanup();
+      
+    } catch (error) {
+      logger.error('❌ Erro durante sincronização:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Exibe estatísticas de sincronização
+   */
+  async showSyncStats() {
+    try {
+      logger.title('📊 ESTATÍSTICAS DE SINCRONIZAÇÃO');
+      
+      const SyncManager = require('./utils/syncManager');
+      const apiConfig = require('./config/api');
+      
+      const syncManager = new SyncManager({
+        ...apiConfig.sync,
+        api: apiConfig
+      });
+      
+      await syncManager.initialize();
+      syncManager.showStats();
+      await syncManager.cleanup();
+      
+    } catch (error) {
+      logger.error('❌ Erro ao carregar estatísticas:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Exibe ajuda
    */
   showHelp() {
@@ -202,14 +297,20 @@ Comandos disponíveis:
   --site <nome>               # Executa site específico
   --list                      # Lista sites disponíveis
   --all                       # Executa todos os sites
+  --sync                      # Sincroniza produtos existentes com a API
+  --sync:site <nome>          # Sincroniza produtos de um site específico
+  --stats                     # Exibe estatísticas de sincronização
 
 Exemplos:
   node src/index.js --site "Spot Gifts"
   node src/index.js --list
   node src/index.js --all
+  node src/index.js --sync
+  node src/index.js --sync:site "Spot Gifts"
+  node src/index.js --stats
 
 Configuração:
-  Crie um arquivo .env na raiz do projeto com as credenciais necessárias.
+  Crie um arquivo .env na raiz do projeto com as credenciais da API.
   Veja o README.md para mais detalhes.
     `);
   }
@@ -252,6 +353,25 @@ Configuração:
           
         case '--all':
           await this.runAll();
+          break;
+          
+        case '--sync':
+          await this.syncExistingProducts();
+          break;
+          
+        case '--sync:site':
+          if (i + 1 < args.length) {
+            const siteName = args[i + 1];
+            await this.syncSiteProducts(siteName);
+            i++; // Pula o próximo argumento
+          } else {
+            logger.error('--sync:site requer um nome de site');
+            this.showHelp();
+          }
+          break;
+          
+        case '--stats':
+          await this.showSyncStats();
           break;
           
         default:

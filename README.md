@@ -10,6 +10,9 @@ Sistema automatizado para extração de dados de produtos de sites de e-commerce
 - Sistema de configuração modular por site
 - Suporte a login quando necessário
 - Salvamento de dados em formato JSON
+- **🆕 Sincronização automática com API da djob.com.br**
+- **🆕 Envio em lote de produtos para a nuvem**
+- **🆕 Sistema de retry e tratamento de erros robusto**
 - Interface de linha de comando com progresso visual
 
 ## 📋 Sites Suportados
@@ -62,6 +65,21 @@ SPOTGIFTS_EMAIL=seu-email@exemplo.com
 SPOTGIFTS_PASSWORD=sua-senha
 XBZBRINDES_EMAIL=seu-email@exemplo.com
 XBZBRINDES_PASSWORD=sua-senha
+
+# ========================================
+# CONFIGURAÇÕES DA API DJOB.COM.BR
+# ========================================
+
+# Credenciais de acesso à API
+DJOB_USERNAME=seu_email@exemplo.com
+DJOB_PASSWORD=sua_senha_aqui
+DJOB_API_KEY=sua_chave_api_aqui
+
+# Sincronização automática
+DJOB_AUTO_SYNC=true
+DJOB_SYNC_AFTER_SCRAPING=true
+DJOB_BATCH_SIZE=10
+DJOB_BATCH_DELAY=2000
 ```
 
 ### 2. Configuração dos Sites
@@ -90,6 +108,32 @@ npm run scrape:xbzbrindes
 npm start
 ```
 
+### 🆕 Sincronização com a API:
+
+```bash
+# Sincroniza todos os produtos existentes
+npm run sync
+
+# Sincroniza produtos de um site específico
+npm run sync:spotgifts
+npm run sync:xbzbrindes
+
+# Exibe estatísticas de sincronização
+npm run stats
+```
+
+### 🆕 Comandos de linha de comando:
+
+```bash
+# Sincronização direta
+node src/index.js --sync
+node src/index.js --sync:site "Spot Gifts"
+node src/index.js --stats
+
+# Combinação de scraping + sincronização
+node src/index.js --site "Spot Gifts"  # Scraping + sincronização automática
+```
+
 ## 📊 Estrutura dos Dados
 
 Cada produto extraído contém:
@@ -114,8 +158,11 @@ Cada produto extraído contém:
 ```
 src/
 ├── config/           # Configurações dos sites
+│   └── api.js        # 🆕 Configurações da API
 ├── scrapers/         # Implementações dos scrapers
 ├── utils/            # Utilitários compartilhados
+│   ├── apiClient.js  # 🆕 Cliente da API
+│   └── syncManager.js # 🆕 Gerenciador de sincronização
 ├── models/           # Modelos de dados
 └── index.js          # Arquivo principal
 ```
@@ -135,6 +182,16 @@ Para adicionar um novo site:
 - Use delays apropriados entre requisições
 - Não sobrecarregue os servidores
 - Considere usar APIs oficiais quando disponíveis
+
+## 🆕 Integração com API
+
+O sistema agora integra automaticamente com a API da [djob.com.br](https://api.djob.com.br/wp-json/api/v1/documentacao):
+
+- **Sincronização automática**: Produtos são enviados para a nuvem após o scraping
+- **Envio em lote**: Processamento eficiente de múltiplos produtos
+- **Tratamento de erros**: Sistema robusto de retry e fallback
+- **Validação**: Produtos são validados antes do envio
+- **Logs detalhados**: Acompanhamento completo do processo de sincronização
 
 ## 📝 Logs
 
