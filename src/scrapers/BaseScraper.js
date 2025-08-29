@@ -446,9 +446,6 @@ class BaseScraper {
       for (const [field, config] of Object.entries(this.config.fieldMapping)) {
         try {
           const value = await this.extractField(config);
-          if (field === 'categorias') {
-            console.log('value ===================>>>>>>>>', field, "===", value);
-          }
           productData[field] = value;
         } catch (error) {
           logger.debug(`Erro ao extrair campo ${field}:`, error);
@@ -479,13 +476,18 @@ class BaseScraper {
             switch (extType) {
               case 'script':
                 const scriptElement = document.querySelector(sel);
+
                 if (!scriptElement) return null;
-                const content = scriptElement.textContent || scriptElement.innerHTML;
-                if (content.includes('item_category')) {
-                  const categories = content.match(/"item_category2":"([^"]*)"/);
-                  return categories;
+                
+                const scriptContent = scriptElement.textContent || scriptElement.innerHTML;
+                const arrItemsMatch = scriptContent.match(/var arrItems = (\[.*?\]);/);
+
+                if (arrItemsMatch && arrItemsMatch[1]) {
+                  const arrItems = JSON.parse(arrItemsMatch[1]);
+                  const itemCategory2 = arrItems[0].item_category2;
+                  return itemCategory2;
                 }
-                return content;
+                return null;
               case 'text':
                 const element = document.querySelector(sel);
                 if (!element) return null;
@@ -595,8 +597,14 @@ class BaseScraper {
                 const priceElement = document.querySelector(sel);
                 if (!priceElement) return null;
                 const priceText = priceElement.textContent?.trim() || '';
-                const priceMatch = priceText.match(/[\d,]+\.?\d*/);
-                return priceMatch ? parseFloat(priceMatch[0].replace(/,/g, '')) : null;
+                
+                const cleanPrice = priceText.replace(/[^\d,.]/g, '');
+                
+                const normalizedPrice = cleanPrice.replace(',', '.');
+                
+                const priceNumber = parseFloat(normalizedPrice);
+                
+                return isNaN(priceNumber) ? null : priceNumber;
               default:
                 const defaultElement = document.querySelector(sel);
                 if (!defaultElement) return null;
@@ -633,19 +641,29 @@ class BaseScraper {
       logger.info('Realizando login...');
       
       const loginConfig = this.config.login;
-      
-      // Navega para a página de login
+
       await this.browserManager.navigateTo(loginConfig.url);
       
-      // Preenche credenciais
-      await this.browserManager.getPage().type(loginConfig.selectors.email, loginConfig.credentials.email);
-      await this.browserManager.getPage().type(loginConfig.selectors.password, loginConfig.credentials.password);
+      await this.browserManager.wait(1000);
+
+      await this.browserManager.getPage().type(loginConfig.selectors.email, loginConfig.credentials.email, { delay: 100 });
+            
+      await this.browserManager.wait(100);
       
-      // Submete o formulário
-      await this.browserManager.getPage().click(loginConfig.selectors.submit);
+      await this.browserManager.getPage().type(loginConfig.selectors.password, loginConfig.credentials.password, { delay: 100 });
       
-      // Aguarda redirecionamento
-      await this.browserManager.wait(3000);
+      await this.browserManager.getPage().evaluate(() => {
+        if (typeof $ !== 'undefined' && $.validator) {
+          const forms = document.querySelectorAll('form');
+          forms.forEach(form => {
+            if (form.action && form.action.includes('login')) {
+              form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            }
+          });
+        } 
+      });
+      
+      await this.browserManager.wait(1000);
       
       logger.success('Login realizado com sucesso');
       

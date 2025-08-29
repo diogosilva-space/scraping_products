@@ -79,17 +79,17 @@ module.exports = {
       required: true
     },
     categorias: {
-      selectors: ['main.content-wrap > script'],
+      selectors: ['#content-wrap script:nth-child(2)'],
       extract: 'script',
       required: false
     },
     informacoes_adicionais: {
-      selectors: ['.conteudo .caracteristica'],
+      selectors: ['#packaging-info > .conteudo'],
       extract: 'text',
       required: false
     },
     preco: {
-      selectors: ['.produto-price', '.price', '.current-price', '[class*="price"]'],
+      selectors: ['.tabela-precos tbody td:nth-child(2)'],
       extract: 'price',
       required: false
     }
@@ -97,12 +97,12 @@ module.exports = {
   
   // Configurações de login (se necessário)
   login: {
-    required: false,
-    url: 'https://www.spotgifts.com.br/pt/login',
+    required: true,
+    url: 'https://www.spotgifts.com.br/pt/area-reservada/login/',
     selectors: {
-      email: '#email, input[name="email"], input[type="email"]',
-      password: '#password, input[name="password"], input[type="password"]',
-      submit: 'button[type="submit"], .login-button, .btn-login'
+      email: 'input#fld_login',
+      password: 'input#fld_pwd',
+      submit: 'input[type="submit"][value="Login"]'
     },
     credentials: {
       email: process.env.SPOTGIFTS_EMAIL,
