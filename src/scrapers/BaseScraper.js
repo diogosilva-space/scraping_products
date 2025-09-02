@@ -79,21 +79,20 @@ class BaseScraper {
       // Extrai dados de cada produto
       await this.extractAllProducts(productLinks);
       
-      // Valida e salva os dados
-      await this.saveResults();
+      // Valida produtos (sem salvar localmente)
+      await this.validateProducts();
       
-      // Gera relatórios
-      await this.generateReports();
-      
-      // Sincroniza produtos com a API se configurado
+      // Sincroniza produtos com a API (upload direto)
       if (this.syncManager && this.config.sync.syncAfterScraping !== false) {
         try {
-          logger.info('🔄 Iniciando sincronização com a API...');
+          logger.info('🔄 Iniciando upload direto para a API...');
           await this.syncManager.syncAfterScraping(this.products, this.config.name);
         } catch (syncError) {
-          logger.error('❌ Erro durante sincronização:', syncError.message);
-          // Não falha o scraping por erro de sincronização
+          logger.error('❌ Erro durante upload para API:', syncError.message);
+          // Não falha o scraping por erro de API
         }
+      } else {
+        logger.info('⚠️ Sincronização com API desabilitada');
       }
       
       logger.success('Scraping concluído com sucesso!');
@@ -699,36 +698,23 @@ class BaseScraper {
   }
 
   /**
-   * Salva os resultados
+   * Valida produtos (sem salvar localmente)
    */
-  async saveResults() {
+  async validateProducts() {
     try {
-      logger.info('Salvando resultados...');
+      logger.info('🔍 Validando produtos...');
       
       // Valida produtos
       const validationStats = this.dataManager.validateProducts(this.products);
       this.stats = { ...this.stats, ...validationStats };
       
-      // Salva produtos
-      const productsFile = await this.dataManager.saveProducts(
-        this.products,
-        this.config.name.toLowerCase().replace(/\s+/g, '_'),
-        this.config.name
-      );
+      logger.success(`✅ ${this.products.length} produtos validados`);
+      logger.info(`📊 Estatísticas: ${validationStats.total_produtos} total, ${validationStats.produtos_validos} válidos, ${validationStats.produtos_invalidos} inválidos`);
       
-      // Salva estatísticas
-      const statsFile = await this.dataManager.saveStats(
-        this.stats,
-        this.config.name.toLowerCase().replace(/\s+/g, '_'),
-        this.config.name
-      );
-      
-      logger.success('Resultados salvos com sucesso');
-      
-      return { productsFile, statsFile };
+      return validationStats;
       
     } catch (error) {
-      logger.error('Erro ao salvar resultados:', error);
+      logger.error('Erro ao validar produtos:', error);
       throw error;
     }
   }

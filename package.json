@@ -35,12 +35,14 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.11.0",
+    "canvas": "^3.2.0",
     "chalk": "^4.1.2",
     "cli-progress": "^3.12.0",
     "dotenv": "^16.4.5",
     "form-data": "^4.0.4",
     "fs-extra": "^11.2.0",
-    "puppeteer": "^24.9.0"
+    "puppeteer": "^24.9.0",
+    "sharp": "^0.34.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

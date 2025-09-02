@@ -156,11 +156,69 @@ class ApiClient {
         formData.append('cores', JSON.stringify(coresData));
       }
       
-      if (product.imagens && product.imagens.length > 0) {
-        // Para imagens, você pode precisar fazer upload separadamente
-        // ou converter URLs para base64 se a API aceitar
-        formData.append('imagens', JSON.stringify(product.imagens));
-      }
+              if (product.imagens && product.imagens.length > 0) {
+          try {
+            // Baixa a primeira imagem e converte para arquivo
+            const imageUrl = product.imagens[0];
+            logger.info(`🖼️ Baixando imagem: ${imageUrl}`);
+            
+            // Usa axios para download da imagem
+            const imageResponse = await this.client.get(imageUrl, {
+              responseType: 'arraybuffer',
+              timeout: 30000
+            });
+            
+            if (imageResponse.status === 200) {
+              // Salva a imagem temporariamente
+              const fs = require('fs');
+              const path = require('path');
+              const tempDir = path.join(process.cwd(), 'temp');
+              
+              // Cria diretório temporário se não existir
+              if (!fs.existsSync(tempDir)) {
+                fs.mkdirSync(tempDir, { recursive: true });
+              }
+              
+              const tempImagePath = path.join(tempDir, `produto_${product.referencia}.jpg`);
+              fs.writeFileSync(tempImagePath, imageResponse.data);
+              
+              // Anexa o arquivo ao FormData
+              formData.append('imagem_produto', fs.createReadStream(tempImagePath));
+              logger.info(`✅ Imagem anexada: ${tempImagePath}`);
+              
+              // Remove o arquivo temporário após anexar
+              setTimeout(() => {
+                try {
+                  fs.unlinkSync(tempImagePath);
+                  logger.info(`🧹 Arquivo temporário removido: ${tempImagePath}`);
+                } catch (cleanupError) {
+                  logger.warn(`⚠️ Erro ao remover arquivo temporário: ${cleanupError.message}`);
+                }
+              }, 1000);
+              
+            } else {
+              logger.warn(`⚠️ Não foi possível baixar imagem: ${imageUrl} (Status: ${imageResponse.status})`);
+              // Cria uma imagem placeholder se necessário
+              const placeholder = await this.createPlaceholderImage(product.referencia);
+              if (placeholder) {
+                formData.append('imagem_produto', placeholder);
+              }
+            }
+          } catch (imageError) {
+            logger.warn(`⚠️ Erro ao processar imagem: ${imageError.message}`);
+            // Cria uma imagem placeholder em caso de erro
+            const placeholder = await this.createPlaceholderImage(product.referencia);
+            if (placeholder) {
+              formData.append('imagem_produto', placeholder);
+            }
+          }
+        } else {
+          // Cria uma imagem placeholder se não houver imagens
+          const placeholder = await this.createPlaceholderImage(product.referencia);
+          if (placeholder) {
+            formData.append('imagem_produto', placeholder);
+          }
+        }
 
       // Envia para a API
       const response = await this.client.post('/produto', formData, {
@@ -314,6 +372,71 @@ class ApiClient {
 
     logger.info(`📊 Envio em lote concluído: ${results.success} sucessos, ${results.errors} erros`);
     return results;
+  }
+
+  /**
+   * Cria uma imagem placeholder para produtos sem imagem
+   */
+  async createPlaceholderImage(referencia) {
+    try {
+      const { createCanvas } = require('canvas');
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Cria um canvas simples com texto
+      const canvas = createCanvas(300, 300);
+      const ctx = canvas.getContext('2d');
+      
+      // Fundo branco
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 300, 300);
+      
+      // Borda
+      ctx.strokeStyle = '#cccccc';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(10, 10, 280, 280);
+      
+      // Texto
+      ctx.fillStyle = '#333333';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('PRODUTO', 150, 120);
+      ctx.fillText(referencia, 150, 160);
+      ctx.fillText('SEM IMAGEM', 150, 200);
+      
+      // Converte para buffer
+      const buffer = canvas.toBuffer('image/png');
+      
+      // Salva a imagem temporariamente
+      const tempDir = path.join(process.cwd(), 'temp');
+      
+      // Cria diretório temporário se não existir
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const tempImagePath = path.join(tempDir, `placeholder_${referencia}.png`);
+      fs.writeFileSync(tempImagePath, buffer);
+      
+      // Retorna o stream de leitura
+      const readStream = fs.createReadStream(tempImagePath);
+      
+      // Remove o arquivo temporário após um delay
+      setTimeout(() => {
+        try {
+          fs.unlinkSync(tempImagePath);
+          logger.info(`🧹 Placeholder temporário removido: ${tempImagePath}`);
+        } catch (cleanupError) {
+          logger.warn(`⚠️ Erro ao remover placeholder temporário: ${cleanupError.message}`);
+        }
+      }, 1000);
+      
+      return readStream;
+      
+    } catch (error) {
+      logger.warn(`⚠️ Erro ao criar imagem placeholder: ${error.message}`);
+      return null;
+    }
   }
 
   /**

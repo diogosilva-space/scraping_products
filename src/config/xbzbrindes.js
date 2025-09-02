@@ -97,6 +97,13 @@ module.exports = {
     }
   },
   
+  // Configurações de sincronização com API
+  sync: {
+    syncAfterScraping: true,
+    validateBeforeSync: true,
+    continueOnError: true
+  },
+  
   // Configurações de login (se necessário)
   login: {
     required: false,

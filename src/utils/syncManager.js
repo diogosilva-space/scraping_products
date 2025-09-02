@@ -68,7 +68,7 @@ class SyncManager {
   }
 
   /**
-   * Sincroniza produtos após o scraping
+   * Sincroniza produtos após o scraping (upload direto para API)
    */
   async syncAfterScraping(products, scraperName) {
     try {
@@ -77,22 +77,22 @@ class SyncManager {
         return { skipped: true, reason: 'Sincronização automática desabilitada' };
       }
 
-      logger.title(`🔄 SINCRONIZANDO PRODUTOS - ${scraperName}`);
-      logger.info(`📦 ${products.length} produtos para sincronizar`);
+      logger.title(`🚀 UPLOAD DIRETO PARA API - ${scraperName}`);
+      logger.info(`📦 ${products.length} produtos para enviar para a API`);
       
       // Filtra produtos válidos se necessário
       let productsToSync = products;
       if (this.config.validateBeforeSync) {
         productsToSync = products.filter(product => product.isValid());
-        logger.info(`✅ ${productsToSync.length} produtos válidos para sincronização`);
+        logger.info(`✅ ${productsToSync.length} produtos válidos para upload`);
       }
       
       if (productsToSync.length === 0) {
-        logger.warn('⚠️ Nenhum produto válido para sincronizar');
+        logger.warn('⚠️ Nenhum produto válido para upload');
         return { skipped: true, reason: 'Nenhum produto válido' };
       }
 
-      // Executa sincronização
+      // Executa upload direto para API
       const syncResult = await this.syncProducts(productsToSync, {
         source: scraperName,
         type: 'post_scraping'
@@ -170,23 +170,23 @@ class SyncManager {
   }
 
   /**
-   * Sincroniza uma lista de produtos
+   * Faz upload direto de produtos para a API
    */
   async syncProducts(products, metadata = {}) {
     try {
       const startTime = new Date();
-      logger.info(`🔄 Iniciando sincronização de ${products.length} produtos...`);
+      logger.info(`🚀 Iniciando upload direto de ${products.length} produtos para a API...`);
 
       // Callback de progresso
       const progressCallback = (progress) => {
         logger.progress(
           progress.current, 
           progress.total, 
-          `Sincronizando lote ${progress.batch}/${progress.totalBatches} (${progress.percentage}%)`
+          `Enviando lote ${progress.batch}/${progress.totalBatches} para API (${progress.percentage}%)`
         );
       };
 
-      // Executa sincronização em lote
+      // Executa upload direto para API em lote
       const batchResult = await this.apiClient.createProductsBatch(products, {
         batchSize: this.config.batchSize,
         delayBetweenBatches: this.config.delayBetweenBatches,
@@ -209,17 +209,17 @@ class SyncManager {
 
       // Log do resultado
       logger.newLine();
-      logger.success(`✅ Sincronização concluída em ${result.durationFormatted}`);
-      logger.info(`📊 Resultado: ${result.success} sucessos, ${result.errors} erros`);
+      logger.success(`✅ Upload para API concluído em ${result.durationFormatted}`);
+      logger.info(`📊 Resultado: ${result.success} produtos enviados, ${result.errors} erros`);
       
       if (result.errors > 0) {
-        logger.warn(`⚠️ ${result.errors} produtos com erro durante sincronização`);
+        logger.warn(`⚠️ ${result.errors} produtos com erro durante upload`);
       }
 
       return result;
       
     } catch (error) {
-      logger.error('❌ Erro durante sincronização:', error.message);
+      logger.error('❌ Erro durante upload para API:', error.message);
       throw error;
     }
   }
