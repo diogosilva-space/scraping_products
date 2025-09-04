@@ -22,6 +22,7 @@
     "sync:xbzbrindes": "node src/index.js --sync:site \"XBZ Brindes\"",
     "stats": "node src/index.js --stats",
     "test:api": "node src/test/test-api-integration.js",
+    "test:integration": "node src/test/test-api-integration.js",
     "cleanup": "chmod +x cleanup-emergency.sh && ./cleanup-emergency.sh",
     "cleanup:win": "cleanup-emergency.bat"
   },

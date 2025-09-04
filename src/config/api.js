@@ -52,10 +52,10 @@ module.exports = {
   // Configurações de produtos
   products: {
     // Campos obrigatórios para criação
-    requiredFields: ['referencia', 'nome', 'descricao', 'preco', 'categorias'],
+    requiredFields: ['referencia', 'nome', 'descricao', 'preco', 'categorias', 'cores', 'imagens'],
     
     // Campos opcionais
-    optionalFields: ['cores', 'imagens', 'informacoes_adicionais'],
+    optionalFields: ['informacoes_adicionais'],
     
     // Mapeamento de campos da API para o modelo local
     fieldMapping: {
@@ -65,7 +65,8 @@ module.exports = {
       preco: 'preco',
       categorias: 'categorias',
       cores: 'cores',
-      imagens: 'imagens'
+      imagens: 'imagens',
+      informacoes_adicionais: 'informacoes_adicionais'
     },
     
     // Validações específicas

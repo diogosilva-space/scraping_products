@@ -24,9 +24,10 @@ class BaseScraper {
     
     // Inicializa gerenciador de sincronização se configurado
     if (this.config.sync && this.config.sync.enabled !== false) {
+      const apiConfig = require('../config/api');
       this.syncManager = new SyncManager({
         ...this.config.sync,
-        api: this.config.api
+        api: apiConfig
       });
     }
   }
@@ -173,7 +174,7 @@ class BaseScraper {
         // Rola a página
         await this.browserManager.scrollToBottom({
           delay: scrollConfig.delay,
-          maxScrolls: 1,
+          maxScrolls: this.config.scroll.maxScrolls,
           scrollStep: scrollConfig.scrollStep
         });
         
@@ -315,7 +316,7 @@ class BaseScraper {
           
         } catch (error) {
           this.stats.erros++;
-          logger.error(`❌ Erro ao extrair produto ${link.href}:`, error);
+          logger.error(`❌ Erro ao extrair produto ${link.href}:`, error.message);
         }
       }
       
@@ -346,6 +347,31 @@ class BaseScraper {
       const productData = await this.extractProductFields();
       
       logger.debug('Dados extraídos:', productData);
+
+      if (this.config.name === 'Spot Gifts') {
+        // Função única para normalização
+        const normalizeEsferografica = (text) => {
+            return typeof text === 'string' 
+                ? text
+                    .replace(/(esferográficas|conjuntos de escrita)/gi, 'Canetas')
+                    .replace(/\besferográfica\b/gi, 'Caneta esferográfica')
+                    .trim()
+                : text;
+        };
+    
+        // Aplica em todas as propriedades relevantes
+        productData.categorias = productData.categorias.map(normalizeEsferografica);
+        productData.nome = normalizeEsferografica(productData.nome);
+        productData.descricao = normalizeEsferografica(productData.descricao);
+
+        const indicePonto = productData.nome.indexOf('.');
+        if (indicePonto === -1) return productData.nome;
+        productData.nome = productData.nome.substring(indicePonto + 1).trim();
+      }
+
+      
+
+      // console.log(productData);
       
       // Adiciona prefixo do site na referência
       if (productData.referencia) {
@@ -353,13 +379,10 @@ class BaseScraper {
         logger.debug(`Referência com prefixo: ${productData.referencia}`);
       }
       
-      // Cria objeto Product
-      logger.debug('Criando objeto Product...');
-      const product = new Product({
-        ...productData,
-        url_produto: productUrl,
-        site_origem: this.config.name
-      });
+      
+      // Cria instância da classe Product
+      const Product = require('../models/Product');
+      const product = new Product(productData);
       
       logger.debug('Objeto Product criado:', {
         nome: product.nome,
@@ -506,16 +529,26 @@ class BaseScraper {
                 const scriptContent = scriptElement.textContent || scriptElement.innerHTML;
                 const arrItemsMatch = scriptContent.match(/var arrItems = (\[.*?\]);/);
 
+
                 if (arrItemsMatch && arrItemsMatch[1]) {
                   const arrItems = JSON.parse(arrItemsMatch[1]);
                   const itemCategory2 = arrItems[0].item_category2;
-                  return itemCategory2;
+                  return [itemCategory2];
                 }
                 return null;
               case 'text':
                 const element = document.querySelector(sel);
                 if (!element) return null;
-                return element.textContent?.trim() || '';
+                
+                // Usa innerHTML para decodificar entidades HTML, depois limpa tags
+                let text = element.innerHTML || element.textContent || '';
+                
+                // Cria um elemento temporário para decodificar entidades HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = text;
+                text = tempDiv.textContent || tempDiv.innerText || text;
+                
+                return text.trim() || '';
               case 'src':
                 // Para imagens, extrai apenas src e remove duplicatas
                 if (sel.includes('img')) {
@@ -635,7 +668,7 @@ class BaseScraper {
                 return defaultElement.textContent?.trim() || '';
             }
           }, selector, extract);
-          
+
           if (value !== null && value !== '') {
             return value;
           }

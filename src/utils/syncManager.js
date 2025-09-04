@@ -83,7 +83,14 @@ class SyncManager {
       // Filtra produtos válidos se necessário
       let productsToSync = products;
       if (this.config.validateBeforeSync) {
-        productsToSync = products.filter(product => product.isValid());
+        productsToSync = products.filter(product => {
+          // Verifica se é uma instância da classe Product
+          if (typeof product.isValid === 'function') {
+            return product.isValid();
+          }
+          // Se não for, verifica campos básicos
+          return product.nome && product.referencia && product.preco;
+        });
         logger.info(`✅ ${productsToSync.length} produtos válidos para upload`);
       }
       
@@ -203,7 +210,7 @@ class SyncManager {
         metadata,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-        duration: duration.getTime(),
+        duration: duration,
         durationFormatted: this.formatDuration(duration)
       };
 

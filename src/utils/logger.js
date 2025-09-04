@@ -95,18 +95,28 @@ class Logger {
     const progressBar = this.createProgressBar(percentage);
     const coloredMessage = chalk.cyan(`[PROGRESS] ${progressBar} ${percentage}% ${message}`);
     
-    // Limpa a linha anterior
-    process.stdout.clearLine();
-    process.stdout.cursorTo(0);
-    process.stdout.write(coloredMessage);
+    // Verifica se estamos em um terminal TTY antes de usar clearLine
+    if (process.stdout.isTTY && 
+        typeof process.stdout.clearLine === 'function' && 
+        typeof process.stdout.cursorTo === 'function') {
+      // Limpa a linha anterior
+      process.stdout.clearLine();
+      process.stdout.cursorTo(0);
+      process.stdout.write(coloredMessage);
+    } else {
+      // Se não for TTY, apenas escreve a mensagem
+      console.log(coloredMessage);
+    }
   }
 
   /**
    * Cria uma barra de progresso visual
    */
   createProgressBar(percentage, width = 20) {
-    const filled = Math.round((percentage / 100) * width);
-    const empty = width - filled;
+    // Garante que a porcentagem esteja entre 0 e 100
+    const safePercentage = Math.max(0, Math.min(100, percentage));
+    const filled = Math.round((safePercentage / 100) * width);
+    const empty = Math.max(0, width - filled);
     
     const filledBar = '█'.repeat(filled);
     const emptyBar = '░'.repeat(empty);

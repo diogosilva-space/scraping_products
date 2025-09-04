@@ -37,7 +37,7 @@ module.exports = {
   
   // Configurações de rolagem
   scroll: {
-    delay: 1500,
+    delay: 500,
     maxScrolls: 100,
     scrollStep: 1000,
     waitForNewContent: 2000
