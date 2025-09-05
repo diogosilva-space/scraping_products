@@ -157,7 +157,7 @@ class TesteIntegracaoAPI {
       
       if (resultado.success) {
         this.adicionarResultado('Criação Produto Complexo', true, `Produto criado com ID: ${resultado.productId}`);
-      } else {
+    } else {
         this.adicionarResultado('Criação Produto Complexo', false, resultado.error);
       }
     } catch (error) {

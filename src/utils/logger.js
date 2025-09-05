@@ -29,7 +29,11 @@ class Logger {
       let logEntry = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
       
       if (data) {
-        logEntry += ` | ${JSON.stringify(data)}`;
+        try {
+          logEntry += ` | ${JSON.stringify(data)}`;
+        } catch (error) {
+          logEntry += ` | [Erro ao serializar dados: ${error.message}]`;
+        }
       }
       
       logEntry += '\n';
