@@ -233,26 +233,20 @@ class ApiClient {
         };
       }
       
-      // Estratégia anti-Mod_Security: criar produto com poucas imagens e atualizar com as restantes
+      // Nova estratégia: enviar TODAS as imagens de uma vez
       const imagesToProcess = product.imagens;
-      const maxInitialImages = 2; // Apenas 2 imagens na criação inicial
-      const maxImagesPerUpdate = 3; // 3 imagens por atualização
       
-      logger.info(`🖼️ Processando ${imagesToProcess.length} imagens do produto (${maxInitialImages} iniciais + atualizações de ${maxImagesPerUpdate})`);
-      
-      // Processa apenas as primeiras imagens para criação inicial
-      const initialImages = imagesToProcess.slice(0, maxInitialImages);
-      const remainingImages = imagesToProcess.slice(maxInitialImages);
+      logger.info(`🖼️ Processando ${imagesToProcess.length} imagem(ns) do produto`);
       
       let imagesProcessed = 0;
       
-      // Processa apenas as imagens iniciais
-      for (let index = 0; index < initialImages.length; index++) {
-        const imagem = initialImages[index];
+      // Processa TODAS as imagens
+      for (let index = 0; index < imagesToProcess.length; index++) {
+        const imagem = imagesToProcess[index];
         
         if (typeof imagem === 'string' && imagem.startsWith('http')) {
           try {
-            logger.info(`🖼️ Baixando imagem inicial ${index + 1}/${initialImages.length}: ${imagem}`);
+            logger.info(`🖼️ Baixando imagem ${index + 1}/${imagesToProcess.length}: ${imagem}`);
             
             const imageResponse = await this.client.get(imagem, {
               responseType: 'arraybuffer',
@@ -272,12 +266,12 @@ class ApiClient {
               fs.writeFileSync(tempImagePath, imageResponse.data);
               
               formData.append(`imagens[${imagesProcessed}]`, fs.createReadStream(tempImagePath));
-              logger.info(`✅ Imagem inicial ${imagesProcessed + 1} anexada: ${tempImagePath}`);
+              logger.info(`✅ Imagem ${imagesProcessed + 1} anexada: ${tempImagePath}`);
               imagesProcessed++;
               
-              // Delay entre imagens iniciais
-              if (index < initialImages.length - 1) {
-                const delay = Math.random() * 1000 + 500; // 0.5-1.5 segundos
+              // Delay entre imagens
+              if (index < imagesToProcess.length - 1) {
+                const delay = Math.random() * 500 + 300; // 0.3-0.8 segundos
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
               
@@ -291,38 +285,31 @@ class ApiClient {
               }, 20000);
               
             } else {
-              logger.warn(`⚠️ Erro ao baixar imagem inicial ${index + 1}: Status ${imageResponse.status}`);
+              logger.warn(`⚠️ Erro ao baixar imagem ${index + 1}: Status ${imageResponse.status}`);
             }
           } catch (imageError) {
-            logger.warn(`⚠️ Erro ao baixar imagem inicial ${index + 1}: ${imageError.message}`);
+            logger.warn(`⚠️ Erro ao baixar imagem ${index + 1}: ${imageError.message}`);
           }
         } else if (typeof imagem === 'string') {
           formData.append(`imagens[${imagesProcessed}]`, fs.createReadStream(imagem));
-          logger.info(`✅ Imagem local inicial ${imagesProcessed + 1} anexada: ${imagem}`);
+          logger.info(`✅ Imagem local ${imagesProcessed + 1} anexada: ${imagem}`);
           imagesProcessed++;
         }
       }
       
-      // Verifica se pelo menos uma imagem inicial foi processada
+      // Verifica se pelo menos uma imagem foi processada
       if (imagesProcessed === 0) {
-        logger.warn(`⚠️ Nenhuma imagem inicial válida processada para ${product.nome} - PULANDO`);
+        logger.warn(`⚠️ Nenhuma imagem válida processada para ${product.nome} - PULANDO`);
         return {
           success: false,
-          error: 'Nenhuma imagem inicial válida',
-          details: 'Todas as imagens iniciais falharam no processamento',
+          error: 'Nenhuma imagem válida',
+          details: 'Todas as imagens falharam no processamento',
           product: product.nome,
           action: 'skipped_invalid_images'
         };
       }
       
-      logger.info(`✅ ${imagesProcessed} imagem(ns) inicial(is) processada(s) com sucesso`);
-      
-      // Armazena as imagens restantes para processamento posterior
-      if (remainingImages.length > 0) {
-        logger.warn(`⚠️ ${remainingImages.length} imagens restantes serão enviadas em atualizações posteriores`);
-        product._remainingImages = remainingImages;
-        product._maxImagesPerUpdate = maxImagesPerUpdate;
-      }
+      logger.info(`✅ ${imagesProcessed} imagem(ns) processada(s) com sucesso`);
 
       // Log do FormData antes do envio
       logger.info(`📤 Enviando FormData com ${Object.keys(formData._streams || {}).length} campos`);
@@ -349,37 +336,14 @@ class ApiClient {
       });
 
       logger.success(`✅ Produto enviado com sucesso: ${product.nome}`);
-      
-      // Se há imagens restantes, processa elas em lotes
-      if (product._remainingImages && product._remainingImages.length > 0) {
-        logger.info(`🔄 Processando ${product._remainingImages.length} imagens restantes para ${product.nome}...`);
-        
-        try {
-          const imageResult = await this.processRemainingImages(
-            response.data?.id, 
-            product._remainingImages, 
-            product.nome,
-            product._maxImagesPerUpdate || 3
-          );
-          
-          if (imageResult.success) {
-            logger.success(`✅ ${imageResult.processed}/${imageResult.total} imagens restantes processadas com sucesso`);
-          } else {
-            logger.warn(`⚠️ Erro ao processar imagens restantes: ${imageResult.errors} erros`);
-          }
-        } catch (imageError) {
-          logger.warn(`⚠️ Erro ao processar imagens restantes para ${product.nome}: ${imageError.message}`);
-        }
-      }
+      logger.success(`📸 Total de imagens enviadas: ${imagesProcessed}`);
       
       return {
         success: true,
         productId: response.data?.id,
         message: 'Produto criado com sucesso',
         data: response.data,
-        totalImages: imagesProcessed + (product._remainingImages?.length || 0),
-        initialImages: imagesProcessed,
-        remainingImages: product._remainingImages?.length || 0
+        totalImages: imagesProcessed
       };
       
     } catch (error) {
@@ -1200,6 +1164,7 @@ async withRateLimit(fn, context = 'api-call') {
         return {
           exists: true,
           productId: response.data.id,
+          product: response.data,
           data: response.data
         };
       } else {

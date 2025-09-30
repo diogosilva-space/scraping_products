@@ -106,3 +106,5 @@ async function testColorImagesNewProduct() {
 }
 
 testColorImagesNewProduct();
+
+

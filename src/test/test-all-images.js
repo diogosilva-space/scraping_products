@@ -1,63 +1,93 @@
-const ApiClient = require('../utils/apiClient');
-const config = require('../config/api');
+/**
+ * Teste para verificar envio de TODAS as imagens do produto
+ */
+
+const APIClient = require('../utils/apiClient');
+const Product = require('../models/Product');
 
 async function testAllImages() {
-  console.log('🧪 Testando envio de TODAS as imagens...\n');
-
-  const apiClient = new ApiClient(config);
+  console.log('\n🧪 Testando envio de TODAS as imagens do produto\n');
   
-  // Produto com muitas imagens
-  const product = {
-    nome: 'Teste Todas as Imagens - ' + Date.now(),
-    referencia: 'TEST-ALL-IMAGES-' + Date.now(),
-    descricao: 'Produto de teste com múltiplas imagens para verificar se todas são enviadas',
-    preco: 25.99,
+  // Cria um produto de teste com MUITAS imagens (8 imagens)
+  const testProduct = new Product({
+    nome: 'Teste Envio Completo de Imagens',
+    referencia: `TEST-ALL-IMAGES-${Date.now()}`,
+    descricao: 'Produto de teste para verificar envio de todas as imagens',
+    preco: 25.00,
+    categorias: ['Teste'],
     cores: [
       {
-        nome: "Azul",
-        tipo: "codigo",
-        codigo: "#0000FF"
-      },
-      {
-        nome: "Vermelho", 
-        tipo: "codigo",
-        codigo: "#FF0000"
+        nome: 'Natural',
+        tipo: 'codigo',
+        codigo: '#F5F5DC',
+        codigoNumerico: '160'
       }
     ],
-    categorias: ['Teste', 'Múltiplas Imagens'],
     imagens: [
-      'https://picsum.photos/300/300?random=1',
-      'https://picsum.photos/300/300?random=2', 
-      'https://picsum.photos/300/300?random=3',
-      'https://picsum.photos/300/300?random=4',
-      'https://picsum.photos/300/300?random=5',
-      'https://picsum.photos/300/300?random=6',
-      'https://picsum.photos/300/300?random=7',
-      'https://picsum.photos/300/300?random=8'
+      'https://www.spotgifts.com.br/fotos/produtos/93640_160-b_1.jpg',
+      'https://www.spotgifts.com.br/fotos/produtos/93640_160-a_1.jpg',
+      'https://www.spotgifts.com.br/fotos/produtos/93640_160-b_2.jpg',
+      'https://www.spotgifts.com.br/fotos/produtos/93640_160-a_2.jpg',
+      'https://www.spotgifts.com.br/fotos/produtos/93640_160-b_3.jpg',
+      'https://www.spotgifts.com.br/fotos/produtos/93640_160-a_3.jpg',
+      'https://www.spotgifts.com.br/fotos/produtos/93640_160-b_4.jpg',
+      'https://www.spotgifts.com.br/fotos/produtos/93640_160-a_4.jpg'
     ]
-  };
-
-  console.log(`📦 Produto de teste: ${product.nome}`);
-  console.log(`🔗 Referência: ${product.referencia}`);
-  console.log(`🖼️ Imagens: ${product.imagens.length}\n`);
-
-  try {
-    console.log('🔄 Criando produto com TODAS as imagens...');
-    const result = await apiClient.createProduct(product);
+  });
+  
+  console.log('📦 Produto de teste:', testProduct.nome);
+  console.log('🔗 Referência:', testProduct.referencia);
+  console.log('🖼️ Total de imagens:', testProduct.imagens.length);
+  console.log('');
+  
+  // Lista todas as imagens
+  testProduct.imagens.forEach((img, idx) => {
+    console.log(`  Imagem ${idx + 1}: ${img}`);
+  });
+  
+  console.log('\n🔄 Criando produto com TODAS as imagens...\n');
+  
+  const apiClient = new APIClient();
+  const result = await apiClient.createProduct(testProduct);
+  
+  console.log('\n✅ Resultado do envio:');
+  console.log('📊 Sucesso:', result.success);
+  console.log('🆔 ID:', result.productId);
+  console.log('📸 Total de imagens enviadas:', result.totalImages);
+  
+  if (result.success) {
+    console.log('\n🔍 Verificando produto na API...');
     
-    if (result.success) {
-      console.log('✅ Produto criado com sucesso!');
-      console.log(`📊 Ação: ${result.action}`);
-      console.log(`🆔 ID: ${result.productId}`);
-      console.log(`🖼️ Imagens processadas: ${product.imagens.length}`);
+    const checkResult = await apiClient.checkProductExists(testProduct.referencia);
+    
+    if (checkResult.exists) {
+      console.log('✅ Produto encontrado na API!');
+      console.log('🆔 ID:', checkResult.productId);
+      console.log('📸 Imagens no produto:', checkResult.product?.imagens?.length || 0);
+      
+      // Verificar quantas imagens realmente foram salvas
+      if (checkResult.product?.imagens) {
+        console.log('\n📋 Imagens salvas na API:');
+        checkResult.product.imagens.forEach((img, idx) => {
+          console.log(`  ${idx + 1}. ${img}`);
+        });
+        
+        const expectedImages = testProduct.imagens.length;
+        const actualImages = checkResult.product.imagens.length;
+        
+        if (actualImages === expectedImages) {
+          console.log(`\n🎉 SUCESSO: Todas as ${expectedImages} imagens foram enviadas!`);
+        } else {
+          console.log(`\n❌ PROBLEMA: Esperado ${expectedImages} imagens, mas apenas ${actualImages} foram salvas!`);
+        }
+      }
     } else {
-      console.log('❌ Erro ao criar produto:');
-      console.log(`   Erro: ${result.error}`);
-      console.log(`   Detalhes: ${result.details}`);
+      console.log('❌ Produto não encontrado na API!');
     }
-  } catch (error) {
-    console.error('❌ Erro durante o teste:', error.message);
+  } else {
+    console.log('❌ Erro ao criar produto:', result.error);
   }
 }
 
-testAllImages();
+// Executa o teste
+testAllImages().catch(console.error);
