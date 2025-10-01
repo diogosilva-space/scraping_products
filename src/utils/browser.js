@@ -135,9 +135,9 @@ class BrowserManager {
   async scrollToBottom(options = {}) {
     try {
       const defaultOptions = {
-        delay: 1000,
+        delay: 2000,
         maxScrolls: 50,
-        scrollStep: 800
+        scrollStep: 1000
       };
       
       const scrollOptions = { ...defaultOptions, ...options };
@@ -146,24 +146,36 @@ class BrowserManager {
       
       let previousHeight = 0;
       let scrollCount = 0;
+      let noChangeCount = 0;
       
       while (scrollCount < scrollOptions.maxScrolls) {
-        // Rola para baixo
-        await this.page.evaluate((step) => {
-          window.scrollBy(0, step);
-        }, scrollOptions.scrollStep);
+        // Rola até o final da página atual
+        await this.page.evaluate(() => {
+          window.scrollTo(0, document.body.scrollHeight);
+        });
         
-        // Aguarda carregamento
+        // Aguarda carregamento de novo conteúdo
         await this.wait(scrollOptions.delay);
         
-        // Verifica se chegou ao final
+        // Verifica a altura atual da página
         const currentHeight = await this.page.evaluate(() => {
           return document.documentElement.scrollHeight;
         });
         
+        // Se a altura não mudou, incrementa contador
         if (currentHeight === previousHeight) {
-          logger.info('Página rolada até o final');
-          break;
+          noChangeCount++;
+          logger.debug(`Altura não mudou (${noChangeCount}/3)`);
+          
+          // Se não houve mudança por 3 vezes, considera finalizado
+          if (noChangeCount >= 3) {
+            logger.info('Página rolada até o final (sem mais conteúdo)');
+            break;
+          }
+        } else {
+          // Altura mudou, reseta contador
+          noChangeCount = 0;
+          logger.debug(`Nova altura: ${currentHeight} (anterior: ${previousHeight})`);
         }
         
         previousHeight = currentHeight;
