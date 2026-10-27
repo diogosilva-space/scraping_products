@@ -47,6 +47,7 @@ Thumbs.db
 # Arquivos de build
 dist/
 build/
+.browser-state/
 
 # Arquivos de teste
 coverage/

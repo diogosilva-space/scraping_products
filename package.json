@@ -1,51 +1,36 @@
 {
   "name": "scraping-products",
-  "version": "1.0.0",
-  "description": "Sistema de scraping de produtos usando Puppeteer",
-  "main": "src/index.js",
+  "version": "2.0.0",
+  "description": "Worker de scraping de catálogos → apps/api + DigitalOcean Spaces",
+  "type": "module",
+  "main": "dist/cli.js",
   "scripts": {
-    "start": "node src/index.js",
-    "scrape:spotgifts": "node src/index.js --site \"Spot Gifts\"",
-    "scrape:xbzbrindes": "node src/index.js --site \"XBZ Brindes\"",
-    "dev": "nodemon src/index.js",
-    "test": "node src/test/test-scraper.js",
-    "test:basic": "node src/test/test-scraper.js basic",
-    "test:config": "node src/test/test-scraper.js config",
-    "test:utils": "node src/test/test-scraper.js utils",
-    "test:compatibility": "node test-compatibility.js",
-    "analyze": "node src/analyze-sites.js",
-    "analyze:all": "node src/analyze-sites.js --all",
-    "analyze:spotgifts": "node src/analyze-sites.js --site spotgifts",
-    "analyze:xbzbrindes": "node src/analyze-sites.js --site xbzbrindes",
-    "sync": "node src/index.js --sync",
-    "sync:spotgifts": "node src/index.js --sync:site \"Spot Gifts\"",
-    "sync:xbzbrindes": "node src/index.js --sync:site \"XBZ Brindes\"",
-    "stats": "node src/index.js --stats",
-    "test:api": "node src/test/test-api-integration.js",
-    "test:integration": "node src/test/test-api-integration.js",
-    "cleanup": "chmod +x cleanup-emergency.sh && ./cleanup-emergency.sh",
-    "cleanup:win": "cleanup-emergency.bat"
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "scrape:spot": "tsx src/cli.ts --site spot",
+    "scrape:xbz": "tsx src/cli.ts --site xbz",
+    "scrape:somarcas": "tsx src/cli.ts --site somarcas",
+    "scrape:neoplas": "tsx src/cli.ts --site neoplas",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "playwright:install": "tsx -e \"import { playwrightBrowsersPath } from './src/core/playwright-env.ts'; console.log('PLAYWRIGHT_BROWSERS_PATH='+playwrightBrowsersPath)\" && playwright install chromium",
+    "cleanup": "chmod +x cleanup-emergency.sh && ./cleanup-emergency.sh"
   },
-  "keywords": [
-    "scraping",
-    "puppeteer",
-    "products",
-    "ecommerce"
-  ],
-  "author": "",
-  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "axios": "^1.11.0",
-    "canvas": "^3.2.0",
-    "chalk": "^4.1.2",
-    "cli-progress": "^3.12.0",
+    "@aws-sdk/client-s3": "^3.1135.0",
+    "cheerio": "^1.0.0",
     "dotenv": "^16.4.5",
-    "form-data": "^4.0.4",
-    "fs-extra": "^11.2.0",
-    "puppeteer": "^24.9.0",
-    "sharp": "^0.34.3"
+    "p-limit": "^6.2.0",
+    "playwright": "^1.52.0",
+    "sharp": "^0.34.3",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "@types/node": "^22.15.30",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
   }
 }
